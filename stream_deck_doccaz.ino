@@ -37,6 +37,10 @@
 // Default wiring : SDA > GPIO2  --- SCK > GPIO3
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+auto timer = timer_create_default();
+
+// show default display after 3 seconds of inactivity
+
 
 // fade functions!
 void fadeout() {
@@ -459,10 +463,6 @@ static const unsigned char swico[128] PROGMEM =
 };
 
 
-auto timer = timer_create_default(); // create a timer with default settings
-
-// show default display after 3 seconds of inactivity
-
 // UVLED GPIO definition
 const uint8_t UVLED_1 = 9;
 const uint8_t UVLED_2 = 8;
@@ -607,7 +607,7 @@ class button {
       display.display(); // Show expected text
     }
 
-    void press(boolean state) {
+    bool press(boolean state) {
 
       if (state == pressed || (millis() - lastPressed  <= debounceTime)) {
         return; // Nothing to see here, folks
@@ -739,10 +739,11 @@ class button {
 
         cptBtn = 0;
       }
+      return state;
     }
 
-    void update() {
-      press(!digitalRead(pin));
+    bool update() {
+      return press(!digitalRead(pin));
     }
 
   private:
@@ -774,16 +775,21 @@ bool showDefaultScreen() {
   button btn = buttons[7]; // mute button
   fadeout();
   if (!btn.activated) {
-    display.stopscroll();
     btn.printText("On AIR", 42, 10);
     display.drawBitmap(0, 0, no_mute, Icon_width, Icon_height, 1);
+    display.startscrollright(0x00, 0xFF);
   } else {
     btn.printText("Shhh", 52, 10);
     display.drawBitmap(0, 0, mute, Icon_width, Icon_height, 1);
-    display.startscrollright(0x00, 0x0F);
+    display.startscrollright(0x00, 0xFF);
   }
   display.display();
   fadein();
+
+  // returns false or true depending on the parameter
+  // true = repeat task at the end
+  // false = do not repeat task at the end
+
   return true;
 }
 
@@ -829,14 +835,15 @@ void setup() {
 
   // show default screen on startup
   showDefaultScreen();
-
-  auto task = timer.every(8000, showDefaultScreen);
-
 }
 
 void loop() {
   for (int i = 0; i < NumButtons; i++) {
-    buttons[i].update();
+    if (buttons[i].update()) {
+      // start a timer in 8 seconds after the last keypress
+      timer.cancel();
+      auto task = timer.in(8000, showDefaultScreen);
+    }
   }
 
   timer.tick(); // update the timer
