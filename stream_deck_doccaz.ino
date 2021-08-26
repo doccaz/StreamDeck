@@ -37,6 +37,38 @@
 // Default wiring : SDA > GPIO2  --- SCK > GPIO3
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+
+// fade functions!
+void fadeout() {
+  for (int dim = 150; dim >= 0; dim -= 30) {
+    display.ssd1306_command(0x81);
+    display.ssd1306_command(dim); //max 157
+    delay(50);
+  }
+
+
+  for (int dim2 = 34; dim2 >= 0; dim2 -= 17) {
+    display.ssd1306_command(0xD9);
+    display.ssd1306_command(dim2);  //max 34
+    delay(100);
+  }
+}
+
+void fadein() {
+  for (int dim = 0; dim <= 160; dim += 30) {
+    display.ssd1306_command(0x81);
+    display.ssd1306_command(dim); //max 160
+    delay(50);
+  }
+
+
+  for (int dim2 = 0; dim2 <= 34; dim2 += 17) {
+    display.ssd1306_command(0xD9);
+    display.ssd1306_command(dim2);  //max 34
+    delay(100);
+  }
+}
+
 //// Icons
 #define Icon_width 32
 #define Icon_height 32
@@ -740,6 +772,7 @@ const uint8_t NumButtons = sizeof(buttons) / sizeof(button);
 bool showDefaultScreen() {
   // by default display the mute status
   button btn = buttons[7]; // mute button
+  fadeout();
   if (!btn.activated) {
     display.stopscroll();
     btn.printText("On AIR", 42, 10);
@@ -748,9 +781,9 @@ bool showDefaultScreen() {
     btn.printText("Shhh", 52, 10);
     display.drawBitmap(0, 0, mute, Icon_width, Icon_height, 1);
     display.startscrollright(0x00, 0x0F);
-    display.display();
   }
   display.display();
+  fadein();
   return true;
 }
 
@@ -797,7 +830,7 @@ void setup() {
   // show default screen on startup
   showDefaultScreen();
 
-  auto task = timer.every(5000, showDefaultScreen);
+  auto task = timer.every(8000, showDefaultScreen);
 
 }
 
